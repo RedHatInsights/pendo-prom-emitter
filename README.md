@@ -18,7 +18,7 @@ To get started developing you need to clone a local copy of the git repository.
 
 0. Clone the repository
 ```bash
-git clone https://github.com/chambridge/pendo-prom-emitter.git
+git clone https://github.com/RedHatInsights/pendo-prom-emitter.git
 ```
 
 1. Change to the cloned directory:
