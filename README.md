@@ -7,8 +7,13 @@ You need:
 
 - Python 3.8.x
 - Pipenv
+- Docker (Local Development Only)
+- Docker Compose (Local Development Only)
 
 ## Development
+This section covers the steps to get started and run the project.
+
+### Getting Started
 To get started developing you need to clone a local copy of the git repository.
 
 0. Clone the repository
@@ -28,7 +33,12 @@ cp .env.example .evn
 
 3. Update the environment variables:
 ```
-PENDO_INTEGRATION_KEY=PENDO_INT_KEY
+PENDO_INTEGRATION_KEY=
+PENDO_AGGREGATION_QUERY=
+PENDO_AGGREGATION_FILTER=
+PROMETHEUS_PUSH_GATEWAY=localhost:9091
+PROMETHEUS_METRICS_MAP={}
+NAMESPACE=NAMESPACE
 ```
 
 4. Install the requirements:
@@ -46,3 +56,23 @@ pipenv shell
 ```bash
 pre-commit install
 ```
+
+### Local Development
+
+1. Launch Prometheus, Prometheus Push Gateway, and Grafana monitoring stack components:
+```bash
+docker-compose up -d
+```
+
+2. Execute pendo-prom-emittter:
+```bash
+python job.py
+```
+
+3. Review metrics using local containers:
+
+ - Launch the Prometheus console at http://localhost:9090
+ - Launch the Prometheus Push Gateway console at http://localhost:9091
+ - Launch the Grafana console at http://localhost:3000
+    - Login with `admin/password`
+    - Create a Prometheus datasource using the address above

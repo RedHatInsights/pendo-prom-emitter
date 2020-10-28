@@ -5,9 +5,11 @@ verify_ssl = true
 
 [dev-packages]
 pre-commit = "*"
+pylint = "*"
 
 [packages]
 requests = "*"
+prometheus-client = "*"
 
 [requires]
 python_version = "3.8"
