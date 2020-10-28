@@ -39,6 +39,7 @@ PENDO_AGGREGATION_FILTER=
 PROMETHEUS_PUSH_GATEWAY=localhost:9091
 PROMETHEUS_METRICS_MAP={}
 NAMESPACE=NAMESPACE
+EXECUTE_NAMESPACE=NAMESPACE
 ```
 
 4. Install the requirements:
@@ -57,16 +58,22 @@ pipenv shell
 pre-commit install
 ```
 
-### Local Development
+### Linting
+You can execute linting using pre-commit with a make command:
+```bash
+make lint
+```
+
+### Developing with Docker Compose
 
 1. Launch Prometheus, Prometheus Push Gateway, and Grafana monitoring stack components:
 ```bash
-docker-compose up -d
+make docker-up
 ```
 
 2. Execute pendo-prom-emittter:
 ```bash
-python job.py
+make run-job
 ```
 
 3. Review metrics using local containers:
@@ -76,3 +83,27 @@ python job.py
  - Launch the Grafana console at http://localhost:3000
     - Login with `admin/password`
     - Create a Prometheus datasource using the address above
+
+### Developing with OpenShift
+
+The `pendo-prom-emitter` runs as a *CronJob* on OpenShift creating data daily. You can deploy it to OpenShift as follows:
+
+1. Login to OpenShift
+```
+oc login
+```
+2. Select your project
+```
+oc project pendo
+```
+3. Copy `openshift/example.parameters.properties` into a `openshift/parameters.properties`
+4. Update the values within `openshift/parameters.properties`
+5. Create OpenShift resources
+```
+make oc-deploy
+```
+
+_Note:_ Delete OpenShift resources with the following command:
+```
+make oc-delete
+```

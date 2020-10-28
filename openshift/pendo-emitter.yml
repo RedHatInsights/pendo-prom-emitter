@@ -1,0 +1,207 @@
+---
+    apiVersion: v1
+    kind: Template
+    metadata:
+      name: pendo-prom-emitter
+
+    objects:
+    - apiVersion: "v1"
+      kind: "ImageStream"
+      metadata:
+        name: "ubi7-python36"
+      spec:
+        dockerImageRepository: "registry.access.redhat.com/ubi7/python-36"
+
+    - apiVersion: v1
+      kind: ImageStream
+      metadata:
+        name: ${NAME}
+        annotations:
+          description: "Keeps track of changes in the application image"
+      spec:
+        lookupPolicy:
+          local: true
+
+    - apiVersion: v1
+      kind: BuildConfig
+      metadata:
+        annotations:
+          description: Defines how to build the application
+          template.alpha.openshift.io/wait-for-ready: "true"
+        labels:
+          name: ${NAME}
+        name: ${NAME}
+      spec:
+        failedBuildsHistoryLimit: 1
+        successfulBuildsHistoryLimit: 2
+        output:
+          to:
+            kind: ImageStreamTag
+            name: ${NAME}:latest
+        resources:
+          requests:
+            memory: ${BUILD_MEMORY_REQUEST}
+            cpu: ${BUILD_CPU_REQUEST}
+          limits:
+            memory: ${BUILD_MEMORY_LIMIT}
+            cpu: ${BUILD_CPU_LIMIT}
+        source:
+          contextDir: ${CONTEXT_DIR}
+          git:
+            ref: ${SOURCE_REPOSITORY_REF}
+            uri: ${SOURCE_REPOSITORY_URL}
+          type: Git
+        strategy:
+          sourceStrategy:
+            env:
+              - name: PIP_INDEX_URL
+                value: ${PIP_INDEX_URL}
+              - name: PIPENV_PYPI_MIRROR
+                value: ${PIPENV_PYPI_MIRROR}
+              - name: ENABLE_PIPENV
+                value: "true"
+              - name: UPGRADE_PIP_TO_LATEST
+                value: "true"
+            from:
+              kind: ImageStreamTag
+              name: ubi7-python36:latest
+              namespace: ${NAMESPACE}
+            forcePull: true
+          type: Source
+        triggers:
+        - type: ConfigChange
+        - imageChange: {}
+          type: ImageChange
+        - github:
+            secret: ${GITHUB_WEBHOOK_SECRET}
+          type: GitHub
+
+    - apiVersion: v1
+      kind: Secret
+      metadata:
+        labels:
+          app: ${NAME}
+        annotations:
+          template.openshift.io/expose-pendo_integration_key: "{.data['pendo_integration_key']}"
+        name: ${NAME}-secret
+      stringData:
+        pendo_integration_key: ${PENDO_INTEGRATION_KEY}
+
+    - apiVersion: batch/v1beta1
+      kind: CronJob
+      metadata:
+        name: ${NAME}
+      spec:
+        schedule: "0 2 * * *"
+        jobTemplate:
+          spec:
+            template:
+              spec:
+                containers:
+                - name: pendo-prom-emitter
+                  image: pendo-prom-emitter
+                  command: ["python", "job.py"]
+                  env:
+                    - name: PENDO_INTEGRATION_KEY
+                      valueFrom:
+                        secretKeyRef:
+                          key: pendo_integration_key
+                          name: pendo-prom-emitter-secret
+                          optional: false
+                    - name: PENDO_AGGREGATION_QUERY
+                      value: ${PENDO_AGGREGATION_QUERY}
+                    - name: PENDO_AGGREGATION_FILTER
+                      value: ${PENDO_AGGREGATION_FILTER}
+                    - name: PROMETHEUS_METRICS_MAP
+                      value: ${PROMETHEUS_METRICS_MAP}
+                    - name: PROMETHEUS_PUSH_GATEWAY
+                      value: ${PROMETHEUS_PUSH_GATEWAY}
+                    - name: EXECUTE_NAMESPACE
+                      value: ${EXECUTE_NAMESPACE}
+                    - name: NAMESPACE
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.namespace
+                restartPolicy: OnFailure
+
+
+
+    parameters:
+    - description: The name assigned to all frontend objects defined in this template.
+      displayName: Name
+      name: NAME
+      required: true
+      value: pendo-prom-emitter
+    - description: The OpenShift Namespace where the ImageStream resides.
+      displayName: Namespace
+      name: NAMESPACE
+      required: true
+      value: koku
+    - description: Initial amount of memory the build container will request.
+      displayName: Build Memory Request
+      name: BUILD_MEMORY_REQUEST
+      required: true
+      value: 1Gi
+    - description: Maximum amount of memory the build container can use.
+      displayName: Build Memory Limit
+      name: BUILD_MEMORY_LIMIT
+      required: true
+      value: 1Gi
+    - description: Initial amount of CPU the build container will request.
+      displayName: Build CPU Request
+      name: BUILD_CPU_REQUEST
+      required: true
+      value: 500m
+    - description: Maximum amount of CPU the build container can use.
+      displayName: Build CPU Limit
+      name: BUILD_CPU_LIMIT
+      required: true
+      value: '1'
+    - description: Set this to the relative path to your project if it is not in the root
+        of your repository.
+      displayName: Context Directory
+      name: CONTEXT_DIR
+      required: false
+    - description: The custom PyPi index URL
+      displayName: Custom PyPi Index URL
+      name: PIP_INDEX_URL
+      required: false
+    - description: The custom PipEnv PyPi index URL
+      displayName: Custom PipEnv PyPi Index URL
+      name: PIPENV_PYPI_MIRROR
+      required: false
+    - description: Github trigger secret.  A difficult to guess string encoded as part
+        of the webhook URL.  Not encrypted.
+      displayName: GitHub Webhook Secret
+      value: webh00k
+      name: GITHUB_WEBHOOK_SECRET
+      required: True
+    - description: The URL of the repository with your application source code.
+      displayName: Git Repository URL
+      name: SOURCE_REPOSITORY_URL
+      required: true
+      value: https://github.com/chambridge/pendo-prom-emitter.git
+    - description: Set this to a branch name, tag or other ref of your repository if you
+        are not using the default branch.
+      displayName: Git Reference
+      name: SOURCE_REPOSITORY_REF
+      required: false
+      value: main
+    - displayName: Pendo Integration Key
+      name: PENDO_INTEGRATION_KEY
+      required: true
+    - displayName: Pendo Aggregation Query
+      name: PENDO_AGGREGATION_QUERY
+      required: true
+    - displayName: Pendo Aggregation Filter
+      name: PENDO_AGGREGATION_FILTER
+      required: true
+    - displayName: Prometheus Push Gateway Address
+      name: PROMETHEUS_PUSH_GATEWAY
+      required: false
+    - displayName: Prometheus Metrics Map
+      name: PROMETHEUS_METRICS_MAP
+      required: true
+    - displayName: Execute Namespace
+      name: EXECUTE_NAMESPACE
+      required: true

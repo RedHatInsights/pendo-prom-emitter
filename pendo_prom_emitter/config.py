@@ -13,6 +13,7 @@ class Config:
     """Configuration for app."""
 
     NAMESPACE = os.getenv("NAMESPACE")
+    EXECUTE_NAMESPACE = os.getenv("EXECUTE_NAMESPACE")
     PROMETHEUS_PUSH_GATEWAY = os.getenv("PROMETHEUS_PUSH_GATEWAY")
     PROMETHEUS_METRICS_MAP = os.getenv("PROMETHEUS_METRICS_MAP")
 
