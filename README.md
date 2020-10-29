@@ -28,7 +28,7 @@ cd pendo-prom-emitter
 2. Copy .env.example into a .env:
 
 ```bash
-cp .env.example .evn
+cp .env.example .env
 ```
 
 3. Update the environment variables:
