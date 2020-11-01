@@ -102,4 +102,9 @@ def execute_aggregation():
         print(f"Error occurred during processing: {response.text}")
 
     if Config.PROMETHEUS_PUSH_GATEWAY:
-        push_to_gateway(Config.PROMETHEUS_PUSH_GATEWAY, job="pendo_metrics", registry=REGISTRY)  # noqa: E501
+        push_to_gateway(
+            Config.PROMETHEUS_PUSH_GATEWAY,
+            job="pendo_metrics",
+            registry=REGISTRY,
+            timeout=Config.PROMETHEUS_PUSH_GATEWAY_TIMEOUT,
+        )
